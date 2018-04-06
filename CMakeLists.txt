@@ -131,10 +131,18 @@ endif()
 # If libccd is not found, manually set the cache variables CCD_INCLUDE_DIR and
 # CCD_LIBRARY
 #===============================================================================
-find_package(ccd QUIET)
+set(CCD_DIR $ENV{HOME}/local/lib/ccd/)
+find_package(ccd 2.0 EXACT REQUIRED)
+set(CCD_INCLUDE_DIRS $ENV{HOME}/local/include)
+set(CCD_LIBRARY_DIRS $ENV{HOME}/local/lib)
+
+#find_package(ccd QUIET)
 
 # If ccd-config.cmake is not found, use pkg-config and/or find_path() and
 # find_library()
+if(ccd_FOUND)
+  MESSAGE("CCD found!")
+endif()
 if(NOT ccd_FOUND)
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(PC_CCD ccd)
