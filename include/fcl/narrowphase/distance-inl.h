@@ -105,7 +105,7 @@ typename NarrowPhaseSolver::S distance(
     nsolver = new NarrowPhaseSolver();
 
   const auto& looktable = getDistanceFunctionLookTable<NarrowPhaseSolver>();
-
+  
   OBJECT_TYPE object_type1 = o1->getObjectType();
   NODE_TYPE node_type1 = o1->getNodeType();
   OBJECT_TYPE object_type2 = o2->getObjectType();
@@ -134,6 +134,7 @@ typename NarrowPhaseSolver::S distance(
     else
     {
       res = looktable.distance_matrix[node_type1][node_type2](o1, tf1, o2, tf2, nsolver, request, result);
+      //std::cerr<<"FCL: "<<res<<std::endl;
     }
   }
 
@@ -150,10 +151,9 @@ typename NarrowPhaseSolver::S distance(
   {
     if (std::is_same<NarrowPhaseSolver, detail::GJKSolver_libccd<S>>::value
         && object_type1 == OT_GEOM && object_type2 == OT_GEOM)
-    {
+    {          
       return res;
     }
-
     CollisionRequest<S> collision_request;
     collision_request.enable_contact = true;
 
@@ -161,7 +161,6 @@ typename NarrowPhaseSolver::S distance(
 
     collide(o1, tf1, o2, tf2, nsolver, collision_request, collision_result);
     assert(collision_result.isCollision());
-
     std::size_t index = static_cast<std::size_t>(-1);
     S max_pen_depth = std::numeric_limits<S>::min();
     for (auto i = 0u; i < collision_result.numContacts(); ++i)
@@ -176,6 +175,7 @@ typename NarrowPhaseSolver::S distance(
     result.min_distance = -max_pen_depth;
     assert(index != static_cast<std::size_t>(-1));
 
+    // Why are both the points same?
     if (request.enable_nearest_points)
     {
       const Vector3<S>& pos = collision_result.getContact(index).pos;

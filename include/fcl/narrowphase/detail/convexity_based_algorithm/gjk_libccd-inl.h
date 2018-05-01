@@ -1211,6 +1211,8 @@ static inline ccd_real_t _ccdDist(const void *obj1, const void *obj2,
     // find out support point
     __ccdSupport(obj1, obj2, &dir, ccd, &last);
 
+    ccdVec3Scale(&dir, -dist);
+
     // record last distance
     last_dist = dist;
 
@@ -1247,6 +1249,7 @@ static int penEPAPosCmp(const void *a, const void *b)
     }
 }
 
+// This function is computing the closest vertices 
 static int penEPAPosClosest(const ccd_pt_t *pt, const ccd_pt_el_t *nearest,
                             ccd_vec3_t *p1, ccd_vec3_t* p2)
 {
@@ -1283,6 +1286,9 @@ static int penEPAPosClosest(const ccd_pt_t *pt, const ccd_pt_el_t *nearest,
 static inline ccd_real_t ccdGJKSignedDist(const void* obj1, const void* obj2, const ccd_t* ccd, ccd_vec3_t* p1, ccd_vec3_t* p2)
 {
   ccd_simplex_t simplex;
+  ccd_vec3_t dir; // direction vector
+  ccd_real_t dist, last_dist;
+  last_dist = CCD_REAL_MAX;
 
   if (__ccdGJK(obj1, obj2, ccd, &simplex) == 0) // in collision, then using the EPA
   {
@@ -1297,10 +1303,29 @@ static inline ccd_real_t ccdGJKSignedDist(const void* obj1, const void* obj2, co
       depth = -CCD_SQRT(nearest->dist);
 
       ccd_vec3_t pos1, pos2;
-      penEPAPosClosest(&polytope, nearest, &pos1, &pos2);
 
-      if (p1) *p1 = pos1;
-      if (p2) *p2 = pos2;
+      // Use alternative function to compute closest point:
+      //penEPAPosClosest(&polytope, nearest, &pos1, &pos2);
+      if (ccdSimplexSize(&simplex) == 1){
+      ccdVec3Copy(&dir, &ccdSimplexPoint(&simplex, 0)->v);
+      }else if (ccdSimplexSize(&simplex) == 2){
+        dist = ccdVec3PointSegmentDist2(ccd_vec3_origin,
+                                        &ccdSimplexPoint(&simplex, 0)->v,
+                                        &ccdSimplexPoint(&simplex, 1)->v,
+                                        &dir);
+      }else if(ccdSimplexSize(&simplex) == 3){
+        dist = ccdVec3PointTriDist2(ccd_vec3_origin,
+                                    &ccdSimplexPoint(&simplex, 0)->v,
+                                    &ccdSimplexPoint(&simplex, 1)->v,
+                                    &ccdSimplexPoint(&simplex, 2)->v,
+                                    &dir);
+      }else{ // ccdSimplexSize(&simplex) == 4
+        dist = simplexReduceToTriangle(&simplex, last_dist, &dir);
+      }
+
+      extractClosestPoints(&simplex,p1,p2,&dir);
+      //if (p1) *p1 = pos1;
+      //if (p2) *p2 = pos2;
 
       //ccd_vec3_t dir; // direction vector
       //ccdVec3Copy(&dir, &nearest->witness);
@@ -1383,6 +1408,7 @@ static inline ccd_real_t ccdGJKDist2(const void *obj1, const void *obj2, const c
     // find out support point
     __ccdSupport(obj1, obj2, &dir, ccd, &last);
 
+    ccdVec3Scale(&dir, -dist);
     // record last distance
     last_dist = dist;
 
